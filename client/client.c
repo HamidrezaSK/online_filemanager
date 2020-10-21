@@ -11,7 +11,7 @@
 
   
 // Driver code 
-int main() { 
+int main() {
     int sockfd; 
     char buffer[MAXLINE]; 
     struct sockaddr_in     servaddr; 
@@ -26,12 +26,10 @@ int main() {
     servaddr.sin_family = AF_INET; 
     servaddr.sin_port = htons(PORT); 
     servaddr.sin_addr.s_addr = INADDR_ANY; 
-    char sip[20];
-    inet_ntop(AF_INET, &(servaddr.sin_addr), sip, INET_ADDRSTRLEN);
     int  n; 
     unsigned int len;
-    char *hello =create_messaage("Hello from client",sip);
-    
+    char *hello =create_register_messaage("hello.exe");
+
     sendto(sockfd, (const char *)hello, strlen(hello), 
         0, (const struct sockaddr *) &servaddr,  
             sizeof(servaddr)); 
