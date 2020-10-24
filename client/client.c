@@ -25,22 +25,21 @@ int main() {
     // Filling server information 
     servaddr.sin_family = AF_INET; 
     servaddr.sin_port = htons(PORT); 
-    servaddr.sin_addr.s_addr = INADDR_ANY; 
+    servaddr.sin_addr.s_addr = INADDR_ANY;
     int  n; 
     unsigned int len;
-    char *hello =create_register_messaage("hello.exe");
+    char *message =create_register_messaage("install.exe");
 
-    sendto(sockfd, (const char *)hello, strlen(hello), 
+    sendto(sockfd, (const char *)message, strlen(message), 
         0, (const struct sockaddr *) &servaddr,  
-            sizeof(servaddr)); 
-    printf("my message: %s\n",hello); 
+            sizeof(servaddr));
+    free(message);
           
     n = recvfrom(sockfd, (char *)buffer, MAXLINE,  
                 MSG_WAITALL, (struct sockaddr *) &servaddr, 
                 &len); 
 
     printf("Server : %s\n", buffer); 
-  
     close(sockfd); 
     return 0; 
 } 
