@@ -35,9 +35,44 @@ char* create_register_messaage(char* message)
     strcat(str,"#");
     strcat(str,sport);
     strcat(str,"#");
-    printf("in create_message: %s\n",str);
+    free(sip);
     return str;
 }
+
+char* create_search_messaage(char* message)
+{
+    char *str;
+    str = (char *) malloc(101);
+    strcpy(str, "S");
+    strcat(str, message);
+    return str;
+}
+
+char* create_getall_messaage(char* message)
+{
+   char * str = (char *) malloc(101);
+    strcpy(str, "O");
+    return str;
+}
+
+char* create_delete_messaage(char* message)
+{
+    char *str;
+    str = (char *) malloc(101);
+    strcpy(str, "U");
+    strcat(str, message);
+    char *sip = get_my_ip();
+    char sport[5];
+    sprintf(sport,"%d",P2PPORT);
+    strcat(str,"#");
+    strcat(str,sip);
+    strcat(str,"#");
+    strcat(str,sport);
+    strcat(str,"#");
+    free(sip);
+    return str;
+}
+
 
 
 
