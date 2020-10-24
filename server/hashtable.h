@@ -1,4 +1,4 @@
-#define MAXOWNERSIZE=20;
+#define MAXOWNERSIZE 20
 #define HASHSIZE 101
 
 typedef struct {
@@ -14,6 +14,8 @@ struct nlist { /* table entry: */
     owner *owners; /* owner peer's ip and port  */
 };
 
+extern struct nlist *hashtab[HASHSIZE];
+
 struct nlist *lookup(char *);
-struct nlist *install(char *, char * , char *);
+int install(char *, char * , char *);
 int del(char *, char * , char *);
