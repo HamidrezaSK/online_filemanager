@@ -6,15 +6,8 @@
 #define MAXNAMESIZE 79
 #define ERROR_404 "NOT FOUND"
 #define ERROR_400 "BAD REQUEST"
+#define ERROR_406 "DUPLICATE FILE"
+#define ERROR_500 "INERNAL SERVER ERROR"
+#define ERROR_512 "TOO MANY OWNERS"
 
 
-
-
-typedef struct {
-    char *filename;
-    char *fileport;
-    char *fileip;
-} file;
-
-extern file *data;
-extern int current_size;
