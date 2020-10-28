@@ -4,7 +4,7 @@
 
 
 
-struct nlist *hashtab[HASHSIZE]; /* pointer table */
+// struct nlist *hashtab[HASHSIZE]; /* pointer table */
 
 /* hash: form hash value for string s */
 unsigned hash(char *s)

@@ -14,6 +14,7 @@
 
 
 
+struct nlist *hashtab[HASHSIZE]; /* pointer table */
 
 
 // Driver code 
@@ -65,6 +66,7 @@ int main() {
                 }
                 break;
             case 'S':
+                send_search_response(buffer,sockfd,cliaddr);
                 break;
             case 'U':
                 status = process_delete_req(buffer);
@@ -77,19 +79,23 @@ int main() {
             case 'O':
                 send_allfiles_response(sockfd,cliaddr);
                 break;
-            case 'A':
-                break;
-            case 'E':
-                break;
+
         }
-        struct nlist *np=lookup("install.exe");
-        printf("files count : %d , filename: %s ,\n", np->owner_count,np->name);
-        for(int i =0 ; i<np->owner_count;i++)
-        {
-            printf("owner : %s , %s \n",np->owners[i].ip,np->owners[i].port);
-        }
+        // struct nlist *np=lookup("install.exe");
+        // printf("files count : %d , filename: %s ,\n", np->owner_count,np->name);
+        // for(int i =0 ; i<np->owner_count;i++)
+        // {
+        //     printf("owner : %s , %s \n",np->owners[i].ip,np->owners[i].port);
+        // }
         // sendto(sockfd, (const char *)message, strlen(message),  
         //     0, (const struct sockaddr *) &cliaddr, sizeof(cliaddr));
+        for(int i = 0;i<HASHSIZE;i++)
+        {
+            if(hashtab[i]!=NULL)
+            {
+                printf("filename : %s \n",hashtab[i]->name);
+            }
+        }
     }
       
     return 0; 
