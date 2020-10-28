@@ -1,10 +1,8 @@
-#define P2PPORT 7656
-#define PORT    8080 
-#define MAXLINE 1024
+void send_register_req(char*,int,struct sockaddr_in);
+void send_search_req(char*,int,struct sockaddr_in);
+void send_delete_req(char*,int,struct sockaddr_in);
+void send_getall_req(int,struct sockaddr_in);
 
-char* create_register_messaage(char* message);
-char* create_delete_messaage(char* message);
-char* create_getall_messaage(char* message);
-char* create_search_messaage(char* message);
+
 
 
