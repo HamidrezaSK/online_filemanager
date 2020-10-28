@@ -5,10 +5,13 @@
 #include <sys/types.h> 
 #include <sys/socket.h> 
 #include <arpa/inet.h> 
-#include <netinet/in.h> 
+#include <netinet/in.h>
+#include <time.h>
 #include "server_func.h"
 #include "server.h"
 #include "hashtable.h"
+
+
 
 int process_register_req(char* message)
 {
@@ -192,3 +195,58 @@ void send_allfiles_response(int sockfd,struct sockaddr_in cliaddr)
     }
     return;
 }
+int gen_rand(int lower,int upper)
+{
+    return rand() % (upper-lower +1) + lower;
+}
+char* create_search_response(int i)
+{
+    char *str;
+    str = (char *) malloc(101);
+    int random_index;
+    strcpy(str, "S");
+    strcat(str, hashtab[i]->name);
+    strcat(str,"#");
+    srand(time(0));
+    random_index = gen_rand(0,hashtab[i]->owner_count);
+    strcat(str,hashtab[i]->owners[random_index].ip);
+    strcat(str,"#");
+    strcat(str,hashtab[i]->owners[random_index].port);
+    strcat(str,"#");
+    return str;
+}
+
+
+void send_search_response(char* message,int sockfd,struct sockaddr_in cliaddr)
+{
+    char* filename = (char*)malloc(sizeof(char)* strlen(message));
+    char* str;
+    strncpy(filename, message+1,strlen(message)-1);
+    printf("wanted file: %s\n",filename);
+
+    if(strlen(filename)<1)
+    {
+        send_error_response(404,sockfd,cliaddr);
+        return;
+    }
+    for(int i = 0;i<HASHSIZE;i++)
+    {
+        if(hashtab[i]!=NULL && strcmp(hashtab[i]->name,filename)==0)
+        {
+            printf("found the file");
+            if(hashtab[i]->owner_count == 0)
+                {
+                    send_error_response(404,sockfd,cliaddr);
+                    return;
+                }
+            str = create_search_response(i);
+            sendto(sockfd, (const char *)str, strlen(str),  
+                0, (const struct sockaddr *) &cliaddr, sizeof(cliaddr));
+            free(str);
+            return;
+        }
+    }
+    send_error_response(404,sockfd,cliaddr);
+    return ;
+}
+
