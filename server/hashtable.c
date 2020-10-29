@@ -44,7 +44,7 @@ int install(char *name, char *ip , char *port)
      else{ /* already there */
         for(int i = 0;i<np->owner_count;i++)
         {
-            if(np->owners[i].ip==ip && np->owners[i].port==port)
+            if(strcmp( np->owners[i].port , port )==0&&strcmp( np->owners[i].ip , ip)==0)
                 return 406;
         }
     //         np->owners[np->owner_count] = {port, ip};
@@ -55,6 +55,7 @@ int install(char *name, char *ip , char *port)
     owner temp = {port,ip};
     np->owners[np->owner_count] =temp;
     np->owner_count++;
+    // printf("new owner's credentials %d , %s , %s\n",hashtab[hash(name)].owner_count,hashtab[hash(name)].owners[np->owner_count].ip,hashtab[hash(name)].owners[np->owner_count].port);
     return 0;
 }
 
@@ -64,11 +65,15 @@ int del(char *name, char *ip , char *port)
     int item_index = -1;
     if ((np = lookup(name)) != NULL) /* found */
     {
-        printf("found it,%d\n",np->owner_count);
+        printf("found it,owner count: %d\n",np->owner_count);
         for(int i = 0;i<np->owner_count;i++)
         {
-            if(item_index == -1&&np->owners[i].port == port && np->owners[i].ip == ip)
+            printf("owner ip , owner port: %s,%s,%s,%s\n",np->owners[i].ip,np->owners[i].port,ip,port);
+            printf("owner ip , owner port: %d,%d\n",strcmp( np->owners[i].port , port ),strcmp( np->owners[i].ip , ip));
+
+            if(item_index == -1&&strcmp( np->owners[i].port , port )==0&&strcmp( np->owners[i].ip , ip)==0)
             {
+                printf("found the owner\n");
                 item_index = i;
                 continue;
             }
@@ -84,14 +89,15 @@ int del(char *name, char *ip , char *port)
     else{ /* not found */
         return 404;
     }
-    if(item_index == -1)
-     return 404;
     if(np->owner_count==0)
     {
         free(np->owners);
         unsigned hashval = hash(name);
         hashtab[hashval] = NULL;
     }
+    if(item_index == -1)
+     return 401;
+
     return 0;
 }
 
