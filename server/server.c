@@ -51,7 +51,7 @@ int main() {
         n = recvfrom(sockfd, (char *)buffer, MAXLINE,  
                     MSG_WAITALL, ( struct sockaddr *) &cliaddr, 
                     &len);
-        buffer[n] = '\0'; 
+        buffer[n] = '\0';
         switch (buffer[0])
         {
             case 'R':
@@ -66,9 +66,11 @@ int main() {
                 }
                 break;
             case 'S':
+                printf("received a search request.\n");
                 send_search_response(buffer,sockfd,cliaddr);
                 break;
             case 'U':
+                printf("received a delete request.\n %s\n",buffer);
                 status = process_delete_req(buffer);
                 printf("this is the status : %d\n",status);
                 if(status==0)
@@ -77,6 +79,7 @@ int main() {
                     send_error_response(status,sockfd,cliaddr);
                 break;
             case 'O':
+                printf("received a getall request.\n");
                 send_allfiles_response(sockfd,cliaddr);
                 break;
 
