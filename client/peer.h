@@ -1,0 +1,2 @@
+#define MAXLINE 101
+#define MAXNAMESIZE 79
