@@ -3,9 +3,11 @@
 #include <unistd.h> 
 #include <string.h> 
 #include <sys/types.h> 
-#include <sys/socket.h> 
+#include <sys/socket.h>
+#include <sys/ioctl.h> 
 #include <arpa/inet.h> 
 #include <netinet/in.h>
+#include <net/if.h>
 #include <ifaddrs.h>
 #include "client_func.h"
 #include "client.h"
@@ -13,20 +15,22 @@
 
 char* get_my_ip()
 {
-    struct ifaddrs *id;
-    char *str = (char *) malloc(15);
-    if(getifaddrs(&id)!=0)
-    {
-        printf("cant find my ip\n");
-    }
-    inet_ntop(AF_INET, &(id->ifa_addr), str, INET_ADDRSTRLEN);
-    return str;
+    int n;
+    struct ifreq ifr;
+    char array[] = MYINTERFACE;
+    n = socket(AF_INET, SOCK_DGRAM, 0);
+    ifr.ifr_addr.sa_family = AF_INET;
+    strncpy(ifr.ifr_name , array , IFNAMSIZ - 1);
+    ioctl(n, SIOCGIFADDR, &ifr);
+    close(n);
+    return inet_ntoa(( (struct sockaddr_in *)&ifr.ifr_addr )->sin_addr);
 }
 
 char* create_register_messaage(char* message)
 {
     char *str;
     str = (char *) malloc(101);
+    memset(str,0,sizeof(str));
     strcpy(str, "R");
     strcat(str, message);
     char *sip = get_my_ip();
@@ -37,7 +41,6 @@ char* create_register_messaage(char* message)
     strcat(str,"#");
     strcat(str,sport);
     strcat(str,"#");
-    free(sip);
     return str;
 }
 
@@ -45,22 +48,31 @@ char* create_search_messaage(char* message)
 {
     char *str;
     str = (char *) malloc(101);
+    memset(str,0,sizeof(str));
     strcpy(str, "S");
     strcat(str, message);
     return str;
 }
 
-char* create_getall_messaage(char* message)
+char* create_getall_messaage()
 {
    char * str = (char *) malloc(101);
     strcpy(str, "O");
     return str;
 }
 
+char* create_ack_messaage()
+{
+   char * str = (char *) malloc(101);
+    strcpy(str, "A");
+    return str;
+}
 char* create_delete_messaage(char* message)
 {
     char *str;
     str = (char *) malloc(101);
+    memset(str,0,sizeof(str));
+
     strcpy(str, "U");
     strcat(str, message);
     char *sip = get_my_ip();
@@ -71,7 +83,6 @@ char* create_delete_messaage(char* message)
     strcat(str,"#");
     strcat(str,sport);
     strcat(str,"#");
-    free(sip);
     return str;
 }
 
@@ -83,7 +94,7 @@ void delete_from_myfiles(char* filename)
     {
         if(myfiles[i] == NULL)
             return;
-        if(item_index == -1 &&myfiles[i].name == filename)
+        if(item_index == -1 &&myfiles[i]->name == filename)
         {
             item_index = i;
         }
@@ -94,7 +105,7 @@ void delete_from_myfiles(char* filename)
                 if(myfiles[i+1] == NULL)
                     free(myfiles[i]);
                 else
-                    myfiles[i].name = myfiles[i+1].name;
+                    myfiles[i]->name = myfiles[i+1]->name;
 
             }
             else 
@@ -117,6 +128,15 @@ void add_to_myfiles(char* filename)
         }
     }
 }
+
+void add_to_serverfiles(char* filename,int index)
+{
+    file  *np;
+    np = (struct nlist *) malloc(sizeof(*np));
+    np->name = filename;
+    serverfiles[index] = np;
+    return;
+}
 int process_resp(char* message)
 {
     if(message[0] == 'E')
@@ -131,6 +151,7 @@ void clear_serverfiles()
     {
         if(serverfiles[i] != NULL)
         {
+            memset(serverfiles[i],0,sizeof(serverfiles[i]));
             free(serverfiles[i]);
             serverfiles[i] = NULL;
         }
@@ -147,7 +168,7 @@ void send_register_req(char*message,int sockfd,struct sockaddr_in servaddr)
     int  n;
     unsigned int len;
     int status;
-    sendto(sockfd, (const char *)message, strlen(message), 
+    sendto(sockfd, (const char *)str, MAXLINE, 
         0, (const struct sockaddr *) &servaddr,  
             sizeof(servaddr));
     printf("register message sent.\n");
@@ -158,59 +179,61 @@ void send_register_req(char*message,int sockfd,struct sockaddr_in servaddr)
     
     status=process_resp(buffer);
     if(status == 0)
-    {
-        printf("file deleted.\n");
-        delete_from_myfiles(message);
-    }
+        printf("file registered successfully.\n");
     else{
-        char* err = (char*)malloc(sizeof(char)* strlen(message));
-        strncpy(err, message+1,strlen(message)-1);
+        char* err = (char*)malloc(sizeof(char)* strlen(buffer));
+        memset(err,0,sizeof(err));
+        strncpy(err, buffer+1,strlen(buffer)-1);
         printf("Server: %s\n",err);
-        free(err)
+        free(err);
     }
     
 }
 
 
-void send_search_req(char*message,int sockfd,struct sockaddr_in servaddr)
+int send_search_req(char*message,int sockfd,struct sockaddr_in servaddr)
 {
     char *str = create_search_messaage(message);
     char buffer[MAXLINE]; 
     int  n;
     unsigned int len;
-    sendto(sockfd, (const char *)message, strlen(message), 
+    int status;
+    sendto(sockfd, (const char *)str, MAXLINE, 
         0, (const struct sockaddr *) &servaddr,  
             sizeof(servaddr));
     printf("search message sent.\n");
     n = recvfrom(sockfd, (char *)buffer, MAXLINE,  
         MSG_WAITALL, (struct sockaddr *) &servaddr, 
             &len);
-        status=process_resp(buffer);
-   /* if(status == 0)
+    status=process_resp(buffer);
+    if(status == 0)
     {
+        printf(buffer);
+        /*
          Not implemented yet 
         go to peer to peer file sharing request
+        */
     }
-    */
+    
     if(status == -1)
     {
-        char* err = (char*)malloc(sizeof(char)* strlen(message));
-        strncpy(err, message+1,strlen(message)-1);
+        char* err = (char*)malloc(sizeof(char)* strlen(buffer));
+        memset(err,0,sizeof(err));
+        strncpy(err, buffer+1,strlen(buffer)-1);
         printf("Server: %s\n",err);
-        free(err)
+        free(err);
     }
-
-    
-    
-    
+    return status;
 }
+
 void send_delete_req(char*message,int sockfd,struct sockaddr_in servaddr)
 {
     char *str = create_delete_messaage(message);
     char buffer[MAXLINE];
     int  n;
     unsigned int len;
-    sendto(sockfd, (const char *)message, strlen(message), 
+    int status;
+    sendto(sockfd, (const char *)str, MAXLINE, 
         0, (const struct sockaddr *) &servaddr,  
             sizeof(servaddr));
     printf("delete message sent.\n");
@@ -220,42 +243,76 @@ void send_delete_req(char*message,int sockfd,struct sockaddr_in servaddr)
     status=process_resp(buffer);
     if(status == 0)
     {
-         Not implemented yet 
-        go to peer to peer file sharing request
+        printf("file deleted.\n");
+        delete_from_myfiles(message);
     }
     
     else
     {
-        char* err = (char*)malloc(sizeof(char)* strlen(message));
-        strncpy(err, message+1,strlen(message)-1);
+        char* err = (char*)malloc(sizeof(char)* strlen(buffer));
+        memset(err,0,sizeof(err));
+        strncpy(err, buffer+1,strlen(buffer)-1);
         printf("Server: %s\n",err);
-        free(err)
+        free(err);
     }
 }
 
 void send_getall_req(int sockfd,struct sockaddr_in servaddr)
 {
     clear_serverfiles();
-    char *str = create_getall_messaage(message);
+    char *message = create_getall_messaage();
     char buffer[MAXLINE];
     int  n;
     unsigned int len;
-    sendto(sockfd, (const char *)message, strlen(message), 
+    sendto(sockfd, (const char *)message, MAXLINE, 
         0, (const struct sockaddr *) &servaddr,  
             sizeof(servaddr));
     printf("getall message sent.\n");
+    free(message);
     int index = 0;
     while(1)
     {
         n = recvfrom(sockfd, (char *)buffer, MAXLINE,  
             MSG_WAITALL, (struct sockaddr *) &servaddr, 
                 &len);
+        if(buffer[0] == 'E')
+        {
+            char* err = (char*)malloc(sizeof(char)* strlen(buffer));
+            memset(err,0,sizeof(err));
+            strncpy(err, buffer+1,strlen(buffer)-1);
+            printf("Server: %s\n",err);
+            free(err);
+            break;
+        }
         char* filename = (char*)malloc(sizeof(char)* strlen(buffer));
-        strncpy(filename, message+1,strlen(message)-1);
-        add_to_myfiles(filename);
+        memset(filename,0,sizeof(filename));
+        strncpy(filename, buffer+1,strlen(buffer)-1);
+
+        add_to_serverfiles(filename,index);
+        message=create_ack_messaage();
+        sendto(sockfd, (const char *)message, MAXLINE, 
+            0, (const struct sockaddr *) &servaddr,  
+                sizeof(servaddr));
+        index++;
+        free(message);
         if(buffer[0] == 'L')
             break;
     }    
+}
+
+void  print_all_serverfiles()
+{
+    for (int i = 0;i<SERVERMAXFILENUM;i++)
+    {
+        if(serverfiles[i] != NULL)
+            printf("%s # ",serverfiles[i]->name);
+        else
+        {
+            printf("\n");
+            break;
+        }
+
+    }
 }
 
 
