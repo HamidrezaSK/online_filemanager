@@ -9,5 +9,7 @@
 #define ERROR_406 "DUPLICATE FILE"
 #define ERROR_500 "INERNAL SERVER ERROR"
 #define ERROR_512 "TOO MANY OWNERS"
+#define ERROR_401 "Unauthorized"
+
 
 
