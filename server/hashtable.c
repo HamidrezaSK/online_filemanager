@@ -3,9 +3,6 @@
 #include "hashtable.h"
 
 
-
-// struct nlist *hashtab[HASHSIZE]; /* pointer table */
-
 /* hash: form hash value for string s */
 unsigned hash(char *s)
 {
@@ -47,15 +44,12 @@ int install(char *name, char *ip , char *port)
             if(strcmp( np->owners[i].port , port )==0&&strcmp( np->owners[i].ip , ip)==0)
                 return 406;
         }
-    //         np->owners[np->owner_count] = {port, ip};
-    //         np->owner_count++;
-        }
+    }
     if(np->owner_count >= 20)
         return 512;
     owner temp = {port,ip};
     np->owners[np->owner_count] =temp;
     np->owner_count++;
-    // printf("new owner's credentials %d , %s , %s\n",hashtab[hash(name)].owner_count,hashtab[hash(name)].owners[np->owner_count].ip,hashtab[hash(name)].owners[np->owner_count].port);
     return 0;
 }
 
@@ -65,12 +59,8 @@ int del(char *name, char *ip , char *port)
     int item_index = -1;
     if ((np = lookup(name)) != NULL) /* found */
     {
-        printf("found it,owner count: %d\n",np->owner_count);
         for(int i = 0;i<np->owner_count;i++)
         {
-            printf("owner ip , owner port: %s,%s,%s,%s\n",np->owners[i].ip,np->owners[i].port,ip,port);
-            printf("owner ip , owner port: %d,%d\n",strcmp( np->owners[i].port , port ),strcmp( np->owners[i].ip , ip));
-
             if(item_index == -1&&strcmp( np->owners[i].port , port )==0&&strcmp( np->owners[i].ip , ip)==0)
             {
                 printf("found the owner\n");
@@ -100,40 +90,3 @@ int del(char *name, char *ip , char *port)
 
     return 0;
 }
-
-
-// int main()
-// {
-//     int err = install("fuck.exe","127.0.0.1","3443");
-//     printf("err is : %d\n",err);
-
-//      err = install("df.exe","127.0.0.1","3443");
-//     printf("err is : %d\n",err);
-
-//     err = install("fuck.exe","127.0.0.1","3543");
-//     printf("err is : %d\n",err);
-//     err = install("fuck.exe","127.0.0.1","3543");
-//     printf("err is : %d\n",err);
-
-//     // np = install("suck","mmd");
-//     // np = install("khaak","akbar");
-//     struct nlist *np = lookup("fuck.exe");
-//     printf("owners of fuck.exe are: \n");
-//     for (int i = 0;i<np->owner_count;i++)
-//         printf("ip : %s , port : %s\n",np->owners[i].ip,np->owners[i].port);
-//     // printf("khaak was : %s , %s\n",np->name,np->defn);
-//     int siz = 0;
-//     err = del("fucka.exe","127.0.0.1","353");
-//     printf("err is : %d\n",err);
-//     for(int i = 0;i<HASHSIZE;i++)
-//     {
-//         if(hashtab[i]!=NULL)
-//         {
-//             siz++;
-//             printf("%s\n",hashtab[i]->name);
-//         }
-//     }
-//     printf("hashtab size is : %d\n",siz);
-
-//     return 0;
-// }
