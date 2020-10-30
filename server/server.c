@@ -72,7 +72,6 @@ int main() {
             case 'U':
                 printf("received a delete request.\n %s\n",buffer);
                 status = process_delete_req(buffer);
-                printf("this is the status : %d\n",status);
                 if(status==0)
                     send_ack_response(sockfd,cliaddr);
                 else
@@ -84,14 +83,6 @@ int main() {
                 break;
 
         }
-        // struct nlist *np=lookup("install.exe");
-        // printf("files count : %d , filename: %s ,\n", np->owner_count,np->name);
-        // for(int i =0 ; i<np->owner_count;i++)
-        // {
-        //     printf("owner : %s , %s \n",np->owners[i].ip,np->owners[i].port);
-        // }
-        // sendto(sockfd, (const char *)message, strlen(message),  
-        //     0, (const struct sockaddr *) &cliaddr, sizeof(cliaddr));
         for(int i = 0;i<HASHSIZE;i++)
         {
             if(hashtab[i]!=NULL)

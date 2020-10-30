@@ -47,7 +47,6 @@ int process_register_req(char* message)
     }
     status = install(filename,fileip,fileport);
     printf("process register status : %d\n",status);
-    printf("%s %s %s\n",filename,fileip,fileport);
     free(filename);
     free(fileip);
     free(fileport);
@@ -88,7 +87,6 @@ int process_delete_req(char* message)
             start = i + 1;
         }
     }
-    printf("how the fuck%s %s %s\n",filename,fileip,fileport);
 
     status = del(filename,fileip,fileport);
     free(filename);
@@ -141,7 +139,6 @@ char* create_error_response(int code)
 void send_error_response(int status,int sockfd,struct sockaddr_in cliaddr)
 {
     char * message = create_error_response(status);
-    printf("error message %s\n",message);
     sendto(sockfd, (const char *)message, MAXLINE,  
         0, (const struct sockaddr *) &cliaddr, sizeof(cliaddr));
     free(message);
@@ -242,7 +239,7 @@ char* create_search_response(struct nlist *np)
     strcat(str, np->name);
     strcat(str,"#");
     srand(time(0));
-    random_index = gen_rand(0,np->owner_count);
+    random_index = gen_rand(0,np->owner_count-1);
     strcat(str,np->owners[random_index].ip);
     strcat(str,"#");
     strcat(str,np->owners[random_index].port);
@@ -258,9 +255,6 @@ void send_search_response(char* message,int sockfd,struct sockaddr_in cliaddr)
     char* str;
     strncpy(filename, message+1,strlen(message)-1);
     strcat(filename, "\0");
-
-    printf("wanted file: %s\n",filename);
-
     if(strlen(filename)<1)
     {
         send_error_response(404,sockfd,cliaddr);
@@ -271,13 +265,15 @@ void send_search_response(char* message,int sockfd,struct sockaddr_in cliaddr)
         send_error_response(404,sockfd,cliaddr);
         return ;
     }
-    printf("found the file\n");
     if(np->owner_count == 0)
         {
             send_error_response(404,sockfd,cliaddr);
             return;
         }
+    
     str = create_search_response(np);
+    printf("found the file\n");
+
     sendto(sockfd, (const char *)str, MAXLINE,  
         0, (const struct sockaddr *) &cliaddr, sizeof(cliaddr));
     free(str);
