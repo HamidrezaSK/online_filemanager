@@ -6,8 +6,10 @@
 #include <sys/socket.h> 
 #include <arpa/inet.h> 
 #include <netinet/in.h> 
+#include <pthread.h>
 #include "client_func.h"
 #include "client.h"
+#include "peer.h"
 
   
 file *myfiles[MAXFILENUM];
@@ -29,6 +31,17 @@ int main() {
     servaddr.sin_family = AF_INET; 
     servaddr.sin_port = htons(PORT); 
     servaddr.sin_addr.s_addr = INADDR_ANY;
+
+    pthread_t thread;
+    int rc = 0;
+    rc =pthread_create(&thread, NULL, server_setup, NULL);
+    if(rc)
+    {
+        perror("could not setup my peer"); 
+        exit(EXIT_FAILURE); 
+    }
+
+
     int c;
     char filename[MAXNAMESIZE];
     int status;
@@ -66,9 +79,13 @@ int main() {
                 print_all_serverfiles();
                 break;
             case 'E':
-                printf("Get all registered files request\n");
-                send_getall_req(sockfd,servaddr);
-                print_all_serverfiles();
+                for(int i = MAXFILENUM-1;i>-1;i--)
+                {
+                    if(myfiles[i]!=NULL)
+                    {
+                        send_delete_req(myfiles[i]->name,sockfd,servaddr);
+                    }
+                }
                 exitt = 1;
                 break;
         }
