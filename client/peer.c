@@ -4,6 +4,9 @@
 #include <string.h> 
 #include <sys/types.h> 
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <pthread.h>
+#include <sys/socket.h> 
 #include "peer.h"
 #include "client.h"
 #include "client_func.h"
@@ -55,9 +58,10 @@ char* create_upload_messaage(char* message,int islast){
     return str;
     
 }
-void process_uploading(int sockfd)
+void * process_uploading(void *arg)
 {
-    // char buffer[MAXLINE];
+    myarg_t *args = (myarg_t *) arg;
+    int sockfd = args->sockfd;
     char* buffer=(char *)malloc(sizeof(char)*MAXLINE);
     char* last_buffer=(char *)malloc(sizeof(char)*MAXLINE);
 
@@ -67,6 +71,8 @@ void process_uploading(int sockfd)
     FILE *file=NULL;
     char* filename = (char*)malloc(sizeof(char)* MAXNAMESIZE);
     n = recv(sockfd, buffer, MAXLINE, 0);
+    printf("download request:%s,%d\n",buffer,n);
+
     if(buffer[0] == 'D')
     {
         strncpy(filename, buffer+1,strlen(buffer)-1);
@@ -74,14 +80,14 @@ void process_uploading(int sockfd)
     else
     {
         perror("[-]Error in packet semantics");
-        return;
+        return NULL;
     }
 
 
     file = fopen(filename, "rb");
     if (file == NULL) {
         perror("[-]Error in reading file.");
-        return;
+        return NULL;
     }
     printf("finding size of the file\n");
     fseek(file, 0L, SEEK_END);
@@ -108,12 +114,12 @@ void process_uploading(int sockfd)
         {
             message = create_upload_messaage(buffer,1);
         }
-        printf("upload mesaage is : %s\n",message);
         send_bytes(message,sockfd);
         message = NULL;
         free(message);
     }
     close(sockfd);
+    return NULL;
 }
 
 void download_file(char* filename,char*ip,char*port_str)
@@ -141,6 +147,10 @@ void download_file(char* filename,char*ip,char*port_str)
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = port;
     server_addr.sin_addr.s_addr = inet_addr(ip);
+    int flag = 1;  
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag)) == -1) {  
+        perror("setsockopt fail");  
+    }
     e = connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr));
     if(e == -1) {
         perror("[-]Error in socket");
@@ -148,14 +158,11 @@ void download_file(char* filename,char*ip,char*port_str)
     }
     printf("[+]Connected to Server.\n");
     message = create_download_messaage(filename);
-    printf("download message: %s\n",message);
     send_bytes(message,sockfd);
     while(1)
     {
         char* writable_data = (char *)malloc(sizeof(char)*MAXLINE);
         n = recv(sockfd, buffer, MAXLINE, 0);
-        printf("recived data bytes from server: %d\n",strlen(buffer));
-
         e = extract_data(buffer,&writable_data);
         printf("recived data from server: %s\n",writable_data);
         if(e == -1)
@@ -167,37 +174,44 @@ void download_file(char* filename,char*ip,char*port_str)
         free(writable_data);
 
         if(buffer[0]=='L')
+        {        
             break;
+        }
         
     }
-    close(file);
+    fclose(file);
+    printf("file downloaded successfully\n");
 }
 
 
-void upload_file(char* filename,char*ip,char*port_str)
-{
-    int port = atoi(port_str);
-    int e;
 
+
+
+
+void * server_setup()
+{
     int sockfd, new_sock;
     struct sockaddr_in server_addr, new_addr;
     socklen_t addr_size;
-
+    int e;
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if(sockfd < 0) {
         perror("[-]Error in socket");
-        return;
+        return NULL;
     }
     printf("[+]Server socket created successfully.\n");
 
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = port;
-    server_addr.sin_addr.s_addr = inet_addr(ip);
-
+    server_addr.sin_port = P2PPORT;
+    server_addr.sin_addr.s_addr = inet_addr(get_my_ip());
+    int flag = 1;  
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag)) == -1) {  
+        perror("setsockopt fail");  
+    }
     e = bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr));
     if(e < 0) {
         perror("[-]Error in bind");
-        return;
+        return NULL;
     }
     printf("[+]Binding successfull.\n");
 
@@ -205,20 +219,31 @@ void upload_file(char* filename,char*ip,char*port_str)
     printf("[+]Listening....\n");
     }else{
     perror("[-]Error in listening");
-        return;
+        return NULL;
     }
-
     addr_size = sizeof(new_addr);
+    pthread_t threads[MAX_THREADS];
+    int rc = 0;
+    int thread_no = 0;
+    while(1)
+    {
+    myarg_t *args = (myarg_t*)malloc(sizeof(myarg_t));
     new_sock = accept(sockfd, (struct sockaddr*)&new_addr, &addr_size);
-    process_uploading(new_sock);
-    printf("[+]Data uploaded to client.\n");
+    args->sockfd = new_sock;
+    rc =pthread_create(&threads[thread_no], NULL, process_uploading, (void*)args);
+    if(rc){
+        printf("can not create another thread\n");
+    }
+    else{
+        thread_no++;
+    }
+    if(thread_no == MAX_THREADS)
+        break;
+    }
+    return NULL;
+
+
 }
-
-
-// void server_setup()
-// {
-
-// }
 
 void client_setup(char* message)
 {
@@ -252,9 +277,8 @@ void client_setup(char* message)
             start = i + 1;
         }
     }
-
-    // printf("process register status : %d\n",status);
-    printf("%s %s %s\n",filename,fileip,fileport);
+    
+    printf("downloading:%s from : %s %s\n",filename,fileip,fileport);
 
     if(level == 2){
         if(atoi(fileport) != P2PPORT || strcmp(fileip,get_my_ip())!=0)
