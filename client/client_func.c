@@ -9,9 +9,40 @@
 #include <netinet/in.h>
 #include <net/if.h>
 #include <ifaddrs.h>
+#include <pthread.h>
 #include "client_func.h"
 #include "client.h"
+#include "peer.h"
 
+void  print_all_serverfiles()
+{
+    for (int i = 0;i<SERVERMAXFILENUM;i++)
+    {
+        if(serverfiles[i] != NULL)
+            printf("%s # ",serverfiles[i]->name);
+        else
+        {
+            printf("\n");
+            break;
+        }
+
+    }
+}
+
+void  print_all_myfiles()
+{
+    for (int i = 0;i<MAXFILENUM;i++)
+    {
+        if(myfiles[i] != NULL)
+            printf("index : %d ,%s # ",i,myfiles[i]->name);
+        else
+        {
+            printf("\n");
+            break;
+        }
+
+    }
+}
 
 char* get_my_ip()
 {
@@ -94,8 +125,10 @@ void delete_from_myfiles(char* filename)
     {
         if(myfiles[i] == NULL)
             return;
-        if(item_index == -1 &&myfiles[i]->name == filename)
+        if(item_index == -1 &&strcmp(myfiles[i]->name,filename)==0)
         {
+            printf("index of wanted file: %d\n",i);
+
             item_index = i;
         }
         if(item_index!=-1)
@@ -103,13 +136,32 @@ void delete_from_myfiles(char* filename)
             if(i < MAXFILENUM-1)
             {
                 if(myfiles[i+1] == NULL)
+                {
+                    memset(myfiles[i]->name,0,strlen(myfiles[i]->name));
+                    printf("deletion process\n");
+                    memset(myfiles[i],0,sizeof(myfiles[i]));
+                    free(myfiles[i]->name);
                     free(myfiles[i]);
+                    myfiles[i] = NULL;
+                }
                 else
-                    myfiles[i]->name = myfiles[i+1]->name;
+                {
+                    // myfiles[i]->name = myfiles[i+1]->name;
+                    strcpy(myfiles[i]->name,myfiles[i+1]->name);
+                }
 
             }
             else 
+            {
+                memset(myfiles[i]->name,0,sizeof(char)*MAXNAMESIZE);
+                memset(myfiles[i],0,sizeof(myfiles[i]));
+                myfiles[i] = NULL;
+                free(myfiles[i]->name);
                 free(myfiles[i]);
+                myfiles[i] = NULL;
+
+
+            }
         }
     }
 }
@@ -121,18 +173,22 @@ void add_to_myfiles(char* filename)
         if(myfiles[i] == NULL)
         {
             file  *np;
-            np = (struct nlist *) malloc(sizeof(*np));
-            np->name = filename;
+            np = (file *) malloc(sizeof(*np));
+            memset(np,0,sizeof(np));
+            np->name = (char *) malloc(sizeof(char)*MAXNAMESIZE);
+            strcpy(np->name,filename);
             myfiles[i] = np;
             return;
         }
     }
+    printf("file added to myfiles successfully.\n");
+
 }
 
 void add_to_serverfiles(char* filename,int index)
 {
     file  *np;
-    np = (struct nlist *) malloc(sizeof(*np));
+    np = (file *) malloc(sizeof(*np));
     np->name = filename;
     serverfiles[index] = np;
     return;
@@ -178,8 +234,11 @@ void send_register_req(char*message,int sockfd,struct sockaddr_in servaddr)
             &len);
     
     status=process_resp(buffer);
-    if(status == 0)
+    if(status == 0){
         printf("file registered successfully.\n");
+        add_to_myfiles(message);
+        print_all_myfiles();
+    }
     else{
         char* err = (char*)malloc(sizeof(char)* strlen(buffer));
         memset(err,0,sizeof(err));
@@ -208,13 +267,8 @@ int send_search_req(char*message,int sockfd,struct sockaddr_in servaddr)
     status=process_resp(buffer);
     if(status == 0)
     {
-        printf(buffer);
-        /*
-         Not implemented yet 
-        go to peer to peer file sharing request
-        */
+        client_setup(buffer);
     }
-    
     if(status == -1)
     {
         char* err = (char*)malloc(sizeof(char)* strlen(buffer));
@@ -245,6 +299,7 @@ void send_delete_req(char*message,int sockfd,struct sockaddr_in servaddr)
     {
         printf("file deleted.\n");
         delete_from_myfiles(message);
+        print_all_myfiles();
     }
     
     else
@@ -300,20 +355,6 @@ void send_getall_req(int sockfd,struct sockaddr_in servaddr)
     }    
 }
 
-void  print_all_serverfiles()
-{
-    for (int i = 0;i<SERVERMAXFILENUM;i++)
-    {
-        if(serverfiles[i] != NULL)
-            printf("%s # ",serverfiles[i]->name);
-        else
-        {
-            printf("\n");
-            break;
-        }
-
-    }
-}
 
 
 
