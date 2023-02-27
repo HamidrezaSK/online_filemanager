@@ -1,5 +1,5 @@
-CC=gcc
-CFLAGS=-g -Wall -std=c99 -I.
+CC=clang
+CFLAGS=-g -Wall -std=c2x -I.
 DEPS= client.h client_func.h peer.h
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
