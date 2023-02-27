@@ -6,7 +6,9 @@
 *.ko
 *.obj
 *.elf
-
+.vscode/
+client
+server
 # Linker output
 *.ilk
 *.map
