@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "hashtable.h"
+#include "server.h"
+
 
 
 /* hash: form hash value for string s */
@@ -20,7 +22,7 @@ struct nlist *lookup(char *s)
     struct nlist *np;
     for (np = hashtab[hash(s)]; np != NULL; np = np->next)
         if (strcmp(s, np->name) == 0)
-          return np; /* found */
+            return np; /* found */
     return NULL; /* not found */
 }
 
@@ -49,9 +51,16 @@ int install(char *name, char *ip , char *port)
     }
     if(np->owner_count >= 20)
         return 512;
-    owner temp = {port,ip};
-    np->owners[np->owner_count] =temp;
+    owner temp = {(char*) malloc(sizeof(char)*(sizeof(char)*MAXIPSIZE)),(char*) malloc(sizeof(char)*(sizeof(char)*MAXPORTSIZE))};
+    memset(temp.ip,0,sizeof(ip));
+    memset(temp.port,0,sizeof(port));
+    strncpy(temp.ip, ip,MAXIPSIZE);
+    strncpy(temp.port, port,MAXPORTSIZE);
+    np->owners[np->owner_count].ip =temp.ip;
+    np->owners[np->owner_count].port =temp.port;
+
     np->owner_count++;
+
     return 0;
 }
 
