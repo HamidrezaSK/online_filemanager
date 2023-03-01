@@ -19,7 +19,7 @@ void  print_all_serverfiles()
     for (int i = 0;i<SERVERMAXFILENUM;i++)
     {
         if(serverfiles[i] != NULL)
-            printf("%s # ",serverfiles[i]->name);
+            printf("%s # \n",serverfiles[i]->name);
         else
         {
             printf("\n");
@@ -34,7 +34,7 @@ void  print_all_myfiles()
     for (int i = 0;i<MAXFILENUM;i++)
     {
         if(myfiles[i] != NULL)
-            printf("index : %d ,%s # ",i,myfiles[i]->name);
+            printf("index : %d ,%s # \n",i,myfiles[i]->name);
         else
         {
             printf("\n");
