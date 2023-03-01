@@ -45,6 +45,7 @@ int process_register_req(char* message)
             start = i + 1;
         }
     }
+
     status = install(filename,fileip,fileport);
     printf("process register status : %d\n",status);
     free(filename);
@@ -240,6 +241,8 @@ char* create_search_response(struct nlist *np)
     strcat(str,"#");
     srand(time(0));
     random_index = gen_rand(0,np->owner_count-1);
+    printf("owner's ip and port are: %s %s\n",np->owners[random_index].ip,np->owners[random_index].port);
+
     strcat(str,np->owners[random_index].ip);
     strcat(str,"#");
     strcat(str,np->owners[random_index].port);
@@ -270,7 +273,6 @@ void send_search_response(char* message,int sockfd,struct sockaddr_in cliaddr)
             send_error_response(404,sockfd,cliaddr);
             return;
         }
-    
     str = create_search_response(np);
     printf("found the file\n");
 
